@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,9 +13,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Todo',
       theme: ThemeData(
-        primarySwatch: Colors.green,
+        primarySwatch: Colors.red,
       ),
       home: const MyHomePage(title: 'Todo'),
     );
@@ -34,7 +34,13 @@ class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _todoController = TextEditingController();
 
   String data = "";
-  final todos = [];
+  List<String>? todos = [];
+
+  @override
+  void initState() {
+    super.initState();
+    get();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +49,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
+        centerTitle: true,
       ),
       body: Container(
         padding: const EdgeInsets.all(8.0),
@@ -89,25 +96,20 @@ class _MyHomePageState extends State<MyHomePage> {
             Expanded(
               child: ListView.builder(
                   scrollDirection: Axis.vertical,
-                  itemCount: todos.length,
+                  itemCount: todos?.length,
                   itemBuilder: (context, index) {
                     return Container(
                         padding: const EdgeInsets.symmetric(
-                            vertical: 5, horizontal: 3),
+                            vertical: 5, horizontal: 6),
                         margin: index == 0
                             ? const EdgeInsets.only(
-                                top: 10, left: 3, right: 3, bottom: 10)
+                                top: 30, left: 3, right: 3, bottom: 10)
                             : const EdgeInsets.symmetric(
                                 vertical: 10, horizontal: 3),
                         decoration: BoxDecoration(
                             color: Colors.grey[300],
                             borderRadius: BorderRadius.circular(5),
                             boxShadow: [
-                              // BoxShadow(
-                              //     color: Colors.grey.shade400,
-                              //     offset: const Offset(-3, -3),
-                              //     blurRadius: 10.4,
-                              //     spreadRadius: 1.0),
                               BoxShadow(
                                   color: Colors.grey.shade500,
                                   offset: const Offset(0, 3),
@@ -121,16 +123,13 @@ class _MyHomePageState extends State<MyHomePage> {
                             Expanded(
                               flex: 2,
                               child: Text(
-                                todos[index].toString(),
+                                todos![index].toString(),
                                 style: const TextStyle(fontSize: 25),
                               ),
                             ),
-                            // const SizedBox(
-                            //   width: 15,
-                            // ),
                             Flexible(
                                 child: MaterialButton(
-                              splashColor: Colors.red,
+                              splashColor: Colors.pink,
                               color: Colors.transparent,
                               onPressed: () {
                                 showDialog(
@@ -140,18 +139,17 @@ class _MyHomePageState extends State<MyHomePage> {
                                               borderRadius:
                                                   BorderRadius.circular(30.0)),
                                           child: SizedBox(
-                                            height: 300,
+                                            height: 100,
                                             child: Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
+
                                               children: [
                                                 Text(
-                                                    todos[index],
-                                                    style: const TextStyle(
-                                                      fontSize: 20.0,
-                                                    ),
+                                                  todos![index],
+                                                  style: const TextStyle(
+                                                    fontSize: 20.0,
+                                                  ),
                                                 ),
+                                                const SizedBox(height: 10,),
                                                 ElevatedButton(
                                                     onPressed: () {
                                                       Navigator.of(context)
@@ -170,9 +168,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               splashColor: Colors.red,
                               color: Colors.transparent,
                               onPressed: () {
-                                setState(() {
-                                  todos.removeAt(index);
-                                });
+                                delete(index);
                               },
                               child: const Icon(Icons.delete),
                             )),
@@ -186,10 +182,28 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  void add(currentFocus) {
+  Future<void> get() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      todos = (prefs.getStringList("todos"))!;
+    });
+  }
+
+  Future<void> delete(index) async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      todos?.removeAt(index);
+      prefs.setStringList("todos", <String>[...?todos]);
+      todos = (prefs.getStringList("todos"))!;
+    });
+  }
+
+  Future<void> add(currentFocus) async {
+    final prefs = await SharedPreferences.getInstance();
     setState(() {
       data = _todoController.text;
-      _todoController.text.isEmpty ? null : todos.add(data);
+      _todoController.text.isEmpty ? "null" : todos!.add(data);
+      prefs.setStringList("todos", <String>[...?todos]);
     });
 
     if (!currentFocus.hasPrimaryFocus) {
@@ -197,22 +211,4 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     _todoController.text = "";
   }
-
-// Future  openEditDialog() => showDialog(context: context, builder:         Dialog(
-//     shape: RoundedRectangleBorder(
-//     borderRadius:BorderRadius.circular(30.0)),
-// child: Container(
-// height: 300,
-// child: Column(
-// mainAxisAlignment: MainAxisAlignment.spaceBetween,
-// children: [
-// FlutterLogo(size: 150,),
-// Text("This is a Custom Dialog",style:TextStyle(fontSize: 20),),
-// ElevatedButton(
-//
-// onPressed: (){
-// Navigator.of(context).pop();
-// }, child: Text("Close"))
-// ],
-// ))
 }
