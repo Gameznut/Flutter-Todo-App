@@ -31,8 +31,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final TextEditingController _todoController = TextEditingController();
-
+  final _todoController = TextEditingController();
+  final _editController = TextEditingController();
   String data = "";
   List<String>? todos = [];
 
@@ -61,20 +61,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Flexible(
-                    child: TextField(
-                        controller: _todoController,
-                        style: const TextStyle(
-                          fontSize: 20.0,
-                        ),
-                        decoration: InputDecoration(
-                            hintText: 'What do you want to do',
-                            suffixIcon: InkWell(
-                                onTap: () {
-                                  _todoController.clear();
-                                },
-                                splashColor: Colors.red[300],
-                                child: const Icon(Icons.clear)),
-                            border: const OutlineInputBorder())),
+                    child: inputField(
+                        _todoController, "What do you want to do", false),
                   ),
                   const SizedBox(
                     width: 12,
@@ -132,34 +120,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               splashColor: Colors.pink,
                               color: Colors.transparent,
                               onPressed: () {
-                                showDialog(
-                                    context: context,
-                                    builder: (context) => Dialog(
-                                          shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(30.0)),
-                                          child: SizedBox(
-                                            height: 100,
-                                            child: Column(
-
-                                              children: [
-                                                Text(
-                                                  todos![index],
-                                                  style: const TextStyle(
-                                                    fontSize: 20.0,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 10,),
-                                                ElevatedButton(
-                                                    onPressed: () {
-                                                      Navigator.of(context)
-                                                          .pop();
-                                                    },
-                                                    child: const Text("Close"))
-                                              ],
-                                            ),
-                                          ),
-                                        ));
+                                openDialog(index);
                               },
                               child: const Icon(Icons.edit),
                             )),
@@ -182,6 +143,22 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  Widget inputField(controller, hint, autoFocus) => TextField(
+      autofocus: autoFocus,
+      controller: controller,
+      style: const TextStyle(
+        fontSize: 20.0,
+      ),
+      decoration: InputDecoration(
+          hintText: hint,
+          suffixIcon: InkWell(
+              onTap: () {
+                controller.clear();
+              },
+              splashColor: Colors.red[300],
+              child: const Icon(Icons.clear)),
+          border: const OutlineInputBorder()));
+
   Future<void> get() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -194,7 +171,6 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       todos?.removeAt(index);
       prefs.setStringList("todos", <String>[...?todos]);
-      todos = (prefs.getStringList("todos"))!;
     });
   }
 
@@ -209,6 +185,33 @@ class _MyHomePageState extends State<MyHomePage> {
     if (!currentFocus.hasPrimaryFocus) {
       currentFocus.unfocus();
     }
-    _todoController.text = "";
+    _todoController.clear();
+  }
+
+  void openDialog(index) {
+    showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+              title: Text(todos![index].toString()),
+              content: inputField(_editController, "Editing...", true),
+              actions: [
+                TextButton(
+                    onPressed: () => edit(todos![index].toString(), index),
+                    child: const Text("Submit"))
+              ],
+            ));
+  }
+
+  Future<void> edit(old, index) async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      data = _editController.text;
+      _editController.text.isEmpty ? todos![index] = old : todos![index] = data;
+      _editController.text = "";
+      prefs.setStringList("todos", <String>[...?todos]);
+    });
+
+    if (!mounted) return;
+    Navigator.of(context).pop();
   }
 }
